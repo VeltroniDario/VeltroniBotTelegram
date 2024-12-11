@@ -6,12 +6,12 @@ public class FitnessBot extends TelegramLongPollingBot {
 
     @Override
     public String getBotUsername() {
-        return "IlNomeDelTuoBot";
+        return "FittyBot";
     }
 
     @Override
     public String getBotToken() {
-        return "IL_TUO_TOKEN_TELEGRAM";
+        return "8185869448:AAEitVqhhl7aGBWaDCFBvyVyk3O84MFSTKM";
     }
 
     @Override

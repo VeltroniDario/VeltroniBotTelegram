@@ -1,57 +1,88 @@
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import org.apache.http.HttpEntity;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.util.EntityUtils;
-
-import java.io.IOException;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.Base64;
+import java.util.Scanner;
+import org.json.JSONObject;
 
 public class FatSecretAPI {
-    // Inserisci qui la tua chiave API e il segreto
-    private static final String API_KEY = "fe63e6d03d6744c5825a9377948f3e4c";
-    private static final String API_SECRET = "99651d6c03854222989d5475b4472444";
 
-    // Endpoint base di FatSecret per le richieste
-    private static final String BASE_URL = "https://platform.fatsecret.com/rest/server.api";
+    // Metodo per ottenere l'access token
+    public static String getAccessToken(String clientId, String clientSecret) {
+        try {
+            String tokenUrl = "https://oauth.fatsecret.com/connect/token";
+            String credentials = Base64.getEncoder().encodeToString((clientId + ":" + clientSecret).getBytes());
 
-    public static void main(String[] args) throws IOException {
-        // Cibo da cercare (puoi cambiare con qualsiasi nome di cibo)
-        String foodName = "apple";
+            URL url = new URL(tokenUrl);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("POST");
+            connection.setDoOutput(true);
+            connection.setRequestProperty("Authorization", "Basic " + credentials);
+            connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 
-        // Invia la richiesta all'API di FatSecret per cercare il cibo
-        String response = getFoodInformation(foodName);
+            String body = "grant_type=client_credentials&scope=basic";
+            OutputStream os = connection.getOutputStream();
+            os.write(body.getBytes());
+            os.flush();
+            os.close();
 
-        // Stampa la risposta JSON
-        System.out.println(response);
-
-        // Analizza la risposta JSON
-        JsonObject jsonResponse = JsonParser.parseString(response).getAsJsonObject();
-        // Esegui il parsing dei dati come preferisci
-        System.out.println("Dati nutrizionali per: " + foodName);
-        System.out.println(jsonResponse);
-    }
-
-    // Funzione per inviare la richiesta all'API e ottenere la risposta
-    private static String getFoodInformation(String foodName) throws IOException {
-        // Crea il client HTTP
-        try (CloseableHttpClient client = HttpClients.createDefault()) {
-            // Crea la richiesta POST
-            HttpPost request = new HttpPost(BASE_URL);
-
-            // Parametri da inviare nella richiesta (modifica secondo le specifiche dell'API)
-            String params = "method=foods.search&search_expression=" + foodName + "&api_key=" + API_KEY + "&format=json";
-
-            // Aggiungi i parametri nel corpo della richiesta
-            request.setEntity(new org.apache.http.entity.StringEntity(params));
-
-            // Esegui la richiesta e ottieni la risposta
-            HttpEntity entity = client.execute(request).getEntity();
-            String responseString = EntityUtils.toString(entity);
-
-            return responseString;
+            int responseCode = connection.getResponseCode();
+            if (responseCode == 200) {
+                Scanner scanner = new Scanner(connection.getInputStream());
+                StringBuilder response = new StringBuilder();
+                while (scanner.hasNext()) {
+                    response.append(scanner.nextLine());
+                }
+                scanner.close();
+                return response.toString(); // Restituisce la risposta completa
+            } else {
+                return "Errore nella richiesta: " + responseCode;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Errore: " + e.getMessage();
         }
     }
-}
 
+    // Metodo per cercare il cibo
+    public static String searchFood(String accessToken, String foodName) {
+        try {
+            String apiUrl = "https://platform.fatsecret.com/rest/server.api";
+
+            URL url = new URL(apiUrl);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("POST");
+            connection.setDoOutput(true);
+            connection.setRequestProperty("Authorization", "Bearer " + accessToken);
+            connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+
+            String body = "method=foods.search&search_expression=" + foodName + "&format=json";
+            OutputStream os = connection.getOutputStream();
+            os.write(body.getBytes());
+            os.flush();
+            os.close();
+
+            int responseCode = connection.getResponseCode();
+            if (responseCode == 200) {
+                Scanner scanner = new Scanner(connection.getInputStream());
+                StringBuilder response = new StringBuilder();
+                while (scanner.hasNext()) {
+                    response.append(scanner.nextLine());
+                }
+                scanner.close();
+                return response.toString();
+            } else {
+                return "Errore nella richiesta: " + responseCode;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Errore: " + e.getMessage();
+        }
+    }
+
+    // Metodo per estrarre il token dalla risposta JSON
+    public static String extractAccessToken(String jsonResponse) {
+        JSONObject jsonObject = new JSONObject(jsonResponse);
+        return jsonObject.getString("access_token");
+    }
+}

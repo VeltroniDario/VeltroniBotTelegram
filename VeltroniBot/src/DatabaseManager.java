@@ -12,15 +12,19 @@ public class DatabaseManager {
     }
 
     public void insertProduct(String name, String price, String description, String category, String site, String productUrl) throws Exception {
-        String sql = "INSERT INTO products (name, price, description, category, site, product_url) VALUES (?, ?, ?, ?, ?, ?)";
-        try (Connection conn = connect(); PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, name);
-            stmt.setString(2, price);
-            stmt.setString(3, description);
-            stmt.setString(4, category);
-            stmt.setString(5, site);
-            stmt.setString(6, productUrl);
-            stmt.executeUpdate();
+        if(name != "" || price != "" || description != "" || category != "") {
+            String sql = "INSERT INTO products (name, price, description, category, site, product_url) VALUES (?, ?, ?, ?, ?, ?)";
+            try (Connection conn = connect(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setString(1, name);
+                stmt.setString(2, price);
+                stmt.setString(3, description);
+                stmt.setString(4, category);
+                stmt.setString(5, site);
+                stmt.setString(6, productUrl);
+                stmt.executeUpdate();
+            }
         }
+
+
     }
 }
